@@ -5,7 +5,7 @@ function getData(auth, callback) {
     sheets.spreadsheets.values.get({
         auth: auth,
         spreadsheetId: '1Subwzl-V9yYigYxqzaJOfBAA6b6XxFzp39odYJth7xs',
-        range: 'Sheet1!A1:E11',
+        range: 'Sheet1!A2:Z11',
     }, (err, response) => {
         if (err) {
             console.log('The API returned an error: ' + err);

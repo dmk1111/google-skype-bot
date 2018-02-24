@@ -18,9 +18,11 @@
   },
   "homepage": "https://github.com/dmk1111/google-skype-bot#readme",
   "dependencies": {
+    "botbuilder": "^3.14.0",
     "google-auth-library": "^0.12.0",
     "googleapis": "^24.0.0",
     "node-fetch": "^2.0.0",
-    "node-schedule": "^1.3.0"
+    "node-schedule": "^1.3.0",
+    "restify": "^6.3.4"
   }
 }
