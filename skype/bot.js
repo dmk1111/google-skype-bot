@@ -3,6 +3,7 @@ let builder = require("botbuilder");
 let botbuilder_azure = require("botbuilder-azure");
 let updateSpreadSheet = require("../spreadsheets/googleDataManage").updateSpreadSheet;
 let getRandomCat = require("../thecatapi/cats").getRandomCat;
+var getPulls = require("../vsts/visualStudioServices").getPRs;
 
 let userList = [
     // last names of users that will be used in RegExp
@@ -72,8 +73,101 @@ bot.on("devareUserData", function (message) {
     // User asked to devare their data
 });
 
-bot.dialog("askForPresenter", function (session) {
-    let msg = new builder.Message(session);
+// Set up dialogs
+
+bot.dialog("askForPresenter", askForPresenterFn, true);
+
+bot.dialog("presenterSelected", presenterSelectedFn, true).triggerAction({ matches: /(confirmed)\s.*responsible*/i });
+
+bot.dialog("skipOneUser", skipOneUserFn, true);
+
+bot.dialog("userOnVacation", userOnVacationFn, true);
+
+bot.dialog("getPullRequests", getPullRequestsFn, true);
+
+bot.dialog("getRandomCat", getRandomCatFn, true);
+
+function startSkypeBot(messageWithUserNames, callback) {
+    var commandRegEx = new RegExp("(\\/)([^ ]*)", "i"); // "/(\/)([^ ]*)/"
+
+//=========================================================
+// Bots Dialogs
+//=========================================================
+
+    var usersMessageSent = false;
+    bot.dialog("/", mainDialog, true);
+
+    bot.on("conversationUpdate", function (message) {
+        bot.beginDialog(message.address, "/");
+    });
+
+    function mainDialog(session, args) {
+        if (!usersMessageSent) {
+            savedAddress = session.message.address;
+            session.userData.savedAddress = savedAddress;
+            var reply = new builder.Message()
+                .address(session.message.address)
+                .text(messageWithUserNames);
+            session.send(reply);
+            usersMessageSent = true;
+        }
+        if (session.message.text) {
+            if (session.message.text.toLowerCase().indexOf("ping") !== -1) {
+                session.send("Ping-Pong :)");
+                session.send(session.message.timestamp);
+            } else if (session.message.text.toLowerCase().indexOf("hello") !== -1) {
+                var name = session.message.user ? session.message.user.name : null;
+                var reply = new builder.Message()
+                    .address(session.message.address)
+                    .text("Hello %s ", name || "there");
+                session.send(reply);
+            } else if (session.message.text.toLowerCase().match(commandRegEx)) {
+                let command = session.message.text.toLowerCase().match(commandRegEx)[0];
+                switch (command) {
+                    case "/complete":
+                        session.beginDialog("askForPresenter");
+                        break;
+                    case "/vac":
+                        session.beginDialog("userOnVacation");
+                        break;
+                    case "/skip":
+                        session.beginDialog("skipOneUser");
+                        break;
+                    case "/getcat":
+                        session.beginDialog("getRandomCat");
+                        break;
+                    case "/getpr":
+                        session.beginDialog("getPullRequests");
+                        break;
+                    case "/status":
+                        callback();
+                        break;
+                    case "/help":
+                        getHelpMessage(session);
+                        break;
+                }
+            }
+        } else {
+            return;
+        }
+    }
+}
+
+function updateSkypeBot(newMessage) {
+    startProactiveDialog(savedAddress, newMessage);
+}
+
+function startProactiveDialog(address, message) {
+    var msg = new builder.Message().address(address);
+    msg.text(message);
+    msg.textLocale("en-US");
+    bot.send(msg);
+}
+function skipUsers(callback) {
+    skipCallback = callback;
+}
+function askForPresenterFn(session) {
+    var msg = new builder.Message(session);
     msg.attachments([
         new builder.HeroCard(session)
             .title("Meeting finished")
@@ -108,122 +202,72 @@ bot.dialog("askForPresenter", function (session) {
             ]),
     ]);
     session.send(msg).endDialog();
-});
-
-bot.dialog("presenterSelected", function (session, args, next) {
+}
+function presenterSelectedFn(session, args, next) {
     // Get username from users utterance
-    let utterance = args.intent.matched[0];
-    let usersCheck = new RegExp(userList.join("|"), "i");
-    let userName = usersCheck.exec(utterance);
-    if (userName) {
-        let userID = userList.indexOf(userName[0]);
-        updateSpreadSheet(userID);
+    var utterance = args.intent.matched[0];
+    var userNameIndex = userList.indexOf(utterance);
+    if (userNameIndex !== -1) {
+        updateSpreadSheet(userNameIndex);
     } else {
         // Invalid user
         session.send("Wrong person selected, try again").endDialog();
     }
-}).triggerAction({ matches: /(confirmed)\s.*responsible*/i });
-
-function skipUsers(callback) {
-    skipCallback = callback;
 }
-
-bot.dialog("skipOneUser", function (session, args, next) {
+function skipOneUserFn(session, args, next) {
     skipCallback();
     session.endDialog();
-}, true);
-
-bot.dialog("userOnVacation", function (session, args, next) {
+}
+function userOnVacationFn(session, args, next) {
     updateSpreadSheet(undefined);
     session.endDialog();
-}, true);
-
-bot.dialog("getRandomCat", function (session, args, next) {
+}
+function getPullRequestsFn(session, args, next) {
+    session.sendTyping();
+    getPulls(prs => {
+        if (prs.length !== 0) {
+            session.send("Please, have a look at following PRs:");
+            prs.forEach(item => {
+                session.send(`${item.name} ${item.url}`);
+            });
+        } else {
+            session.send("No active PRs found");
+        }
+        session.endDialog();
+    })
+}
+function getRandomCatFn(session, args, next) {
     session.send("Searching for a funny cat (poolparty)");
     session.sendTyping();
     getRandomCat((type, catLink) => {
-        let msg = new builder.Message(session)
+        var msg = new builder.Message(session)
             .address(session.message.address)
             .text(catLink);
 
         session.send(msg);
-        setTimeout(() => {
+        setTimeout( () => {
             session.endDialog();
-        }, 100);
-    });
-}, true);
-
-function startSkypeBot(messageWithUserNames, callback) {
-
-//=========================================================
-// Bots Dialogs
-//=========================================================
-
-    let usersMessageSent = false;
-    bot.dialog("/", function (session, args) {
-        if (!usersMessageSent) {
-            savedAddress = session.message.address;
-            session.userData.savedAddress = savedAddress;
-            let reply = new builder.Message()
-                .address(session.message.address)
-                .text(messageWithUserNames);
-            session.send(reply);
-            usersMessageSent = true;
-        }
-        if (session.message.text) {
-            if (session.message.text.toLowerCase().indexOf("ping") !== -1) {
-                session.send("Ping-Pong :)");
-                session.send(session.message.timestamp);
-            } else if (session.message.text.toLowerCase().indexOf("hello") !== -1) {
-                let name = session.message.user ? session.message.user.name : null;
-                let reply = new builder.Message()
-                    .address(session.message.address)
-                    .text("Hello %s ", name || "there");
-                session.send(reply);
-            } else if (session.message.text.indexOf("/complete") !== -1) {
-                session.beginDialog("askForPresenter");
-            } else if (session.message.text.indexOf("/vac") !== -1) {
-                session.beginDialog("userOnVacation");
-            } else if (session.message.text.indexOf("/skip") !== -1) {
-                session.beginDialog("skipOneUser");
-            } else if (session.message.text.toLowerCase().indexOf("/getcat") !== -1) {
-                session.beginDialog("getRandomCat");
-            } else if (session.message.text.indexOf("/status") !== -1) {
-                callback();
-            } else if (session.message.text.indexOf("/help") !== -1) {
-                let availableCommands = "Hi, here is a list of available commands:  \n";
-                availableCommands
-                    += "'/complete' - complete morning meeting and select presenter to update spreadsheet  \n";
-                availableCommands
-                    += "'/vac' - mark responsible person (first one in '/status' result) as on vacation  \n";
-                availableCommands += "'/skip' - skip current person and get message with new presenter  \n";
-                availableCommands += "'/getcat' - get random cat picture ;)  \n";
-                availableCommands += "'/status' - get message with people responsible for next meeting";
-                let reply = new builder.Message()
-                    .address(session.message.address)
-                    .text(availableCommands);
-                session.send(reply);
-            }
-        } else {
-            return;
-        }
-    }, true);
-
-    bot.on("conversationUpdate", function (message) {
-        bot.beginDialog(message.address, "/");
+        }, 100)
     });
 }
 
-function updateSkypeBot(newMessage) {
-    startProactiveDialog(savedAddress, newMessage);
+function getHelpMessage(session) {
+    var availableCommands = "Hi, here is a list of available commands:  \n";
+    availableCommands
+        += "'/complete' - complete morning meeting and select presenter to update spreadsheet  \n";
+    availableCommands += "'/vac' - mark responsible person (first one in '/status' result) as on vacation  \n";
+    availableCommands += "'/skip' - skip current person and get message with new presenter  \n";
+    availableCommands += "'/getpr' - get list of PRs assigned to Framework - Front-end  \n";
+    availableCommands += "'/getcat' - get random cat picture ;)  \n";
+    availableCommands += "'/status' - get message with people responsible for next meeting";
+    var reply = new builder.Message()
+        .address(session.message.address)
+        .text(availableCommands);
+    session.send(reply);
 }
-
-function startProactiveDialog(address, message) {
-    let msg = new builder.Message().address(address);
-    msg.text(message);
-    msg.textLocale("en-US");
-    bot.send(msg);
-}
+module.exports.startSkypeBot = startSkypeBot;
+module.exports.updateSkypeBot = updateSkypeBot;
+module.exports.skipUsers = skipUsers;
 
 module.exports.startSkypeBot = startSkypeBot;
 module.exports.updateSkypeBot = updateSkypeBot;
