@@ -1,0 +1,35 @@
+{
+  "name": "google-skype-bot",
+  "version": "1.0.0",
+  "description": "Bot that takes info from spreadsheet & posts it to Skype chat at specific time",
+  "main": "app.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node app.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/dmk1111/google-skype-bot.git"
+  },
+  "author": "Dmyrto Holysh",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/dmk1111/google-skype-bot/issues"
+  },
+  "homepage": "https://github.com/dmk1111/google-skype-bot#readme",
+  "dependencies": {
+    "botbuilder": "^3.13.1",
+    "botbuilder-azure": "^3.0.4",
+    "google-auth-library": "^0.12.0",
+    "googleapis": "^24.0.0",
+    "node-fetch": "^2.0.0",
+    "ontime": "0.0.4",
+    "request": "^2.81.0",
+    "restify": "^5.0.0",
+    "restify-errors": "^6.0.0",
+    "xml2js": "^0.4.19"
+  },
+  "devDependencies": {
+    "zip-folder": "^1.0.0"
+  }
+}
