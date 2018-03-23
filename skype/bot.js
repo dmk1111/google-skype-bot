@@ -20,6 +20,9 @@ let userList = [
 ];
 
 let skipCallback;
+let savedAddress = undefined;
+let botAddresses = undefined;
+let updateCallback;
 
 //=========================================================
 // Bot Setup
@@ -47,9 +50,6 @@ let tableStorage = new botbuilder_azure.AzureBotStorage({ gzipData: false }, azu
 
 let bot = new builder.UniversalBot(connector);
 bot.set("storage", tableStorage);
-
-let savedAddress = undefined;
-var botAddresses = [];
 
 server.listen(process.env.port || process.env.PORT || 3978, function () {
     console.log("%s listening to %s", server.name, server.url);
@@ -90,6 +90,8 @@ bot.dialog("getPullRequests", getPullRequestsFn, true);
 bot.dialog("getRandomCat", getRandomCatFn, true);
 
 function startSkypeBot(messageWithUserNames, callback) {
+    botAddresses = [];
+    updateCallback = callback;
     var commandRegEx = new RegExp("(\\/)([^ ]*)", "i"); // "/(\/)([^ ]*)/"
 
 //=========================================================
@@ -100,14 +102,14 @@ function startSkypeBot(messageWithUserNames, callback) {
     bot.dialog("/", mainDialog, true);
 
     bot.on("conversationUpdate", function (message) {
-        if (botAddresses.length === 0 || !botAddresses.some( addr => addr.conversation.id === message.address.conversation.id)) {
-            botAddresses.push(message.address);
-            console.log(botAddresses);
-        }
         bot.beginDialog(message.address, "/");
     });
 
     function mainDialog(session, args) {
+        if (botAddresses.length === 0 || botAddresses.length > 0 && botAddresses.filter(
+                addr => addr.conversation.id === session.message.address.conversation.id).length === 0) {
+            botAddresses.push(session.message.address);
+        }
         if (!usersMessageSent) {
             savedAddress = session.message.address;
             session.userData.savedAddress = savedAddress;
@@ -121,6 +123,8 @@ function startSkypeBot(messageWithUserNames, callback) {
             if (session.message.text.toLowerCase().indexOf("ping") !== -1) {
                 session.send("Ping-Pong :)");
                 session.send(session.message.timestamp);
+                session.send(JSON.stringify(session.message.address));
+                session.send(JSON.stringify(botAddresses));
             } else if (session.message.text.toLowerCase().indexOf("hello") !== -1) {
                 var name = session.message.user ? session.message.user.name : null;
                 var reply = new builder.Message()
@@ -146,11 +150,13 @@ function startSkypeBot(messageWithUserNames, callback) {
                         session.beginDialog("getPullRequests");
                         break;
                     case "/status":
-                        callback();
+                        updateCallback();
                         break;
                     case "/help":
                         getHelpMessage(session);
                         break;
+                    default:
+                        return;
                 }
             }
         } else {
@@ -159,7 +165,8 @@ function startSkypeBot(messageWithUserNames, callback) {
     }
 }
 
-function updateSkypeBot(newMessage) {
+function updateSkypeBot(newMessage, callback) {
+    updateCallback = callback;
     botAddresses.forEach( address => startProactiveDialog(address, newMessage));
 }
 
@@ -285,7 +292,11 @@ ontime({
     utc: true,
     single: true
 }, (ot) => {
-    console.log("triggered");
+    let day = new Date().getDay();
+    if (day === 0 || day === 6) {
+        ot.done();
+        return;
+    }
     notifyAboutMeetingEnd();
     ot.done();
     return;

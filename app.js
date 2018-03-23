@@ -48,9 +48,9 @@ function getNextInQueue(rows) {
     }
     if (botStarted /*&& userNames[0] !== filteredNames[0] && userNames[1] !== filteredNames[1]*/) {
         // updateSkypeBot(newMessage);
-        updateSkypeBot(newMessage);
+        updateSkypeBot(newMessage, () => getData(getNextInQueue));
     } else if (!botStarted /*&& userNames[0] !== filteredNames[0] && userNames[1] !== filteredNames[1]*/){
-        startSkypeBot(newMessage, function() {getData(getNextInQueue);});
+        startSkypeBot(newMessage, () => getData(getNextInQueue));
         botStarted = true;
     }
     userNames = filteredNames;
@@ -71,7 +71,11 @@ ontime({
     utc: true,
     single: true
 }, (ot) => {
-    console.log("triggered");
+    let day = new Date().getDay();
+    if (day === 0 || day === 6 ) {
+        ot.done();
+        return;
+    }
     getData(getNextInQueue);
     ot.done();
     return;
