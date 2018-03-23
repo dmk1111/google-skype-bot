@@ -1,8 +1,8 @@
-const schedule = require('node-schedule');
+const ontime = require("ontime");
 
 let getData = require("./spreadsheets/googleDataManage").getData;
 let startSkypeBot = require("./skype/bot").startSkypeBot;
-// let updateSkypeBot = require("./skype/bot").updateSkypeBot;
+let updateSkypeBot = require("./skype/bot").updateSkypeBot;
 let skipUsers = require("./skype/bot").skipUsers;
 
 let userNames = [];
@@ -35,18 +35,20 @@ function getNextInQueue(rows) {
         prevRows = rows;
         let meetingsPassed = rows.map(function (row) {return +row[1];});
         let nextPeople = rows.filter(function (row) {return +row[1] === Math.min.apply(null, meetingsPassed);});
+        let peopleFromStart = rows.filter(
+            function (row) {return +row[1] === Math.min.apply(null, meetingsPassed) + 1;});
         if (nextPeople.length >= 2) {
             filteredNames = [nextPeople[0][0], nextPeople[1][0]];
         } else if (nextPeople.length === 1) {
-            filteredNames = [nextPeople[0][0], rows[0][0]];
+            filteredNames = [nextPeople[0][0], peopleFromStart[0][0]];
         } else {
-            filteredNames = [rows[0][0], rows[1][0]];
+            filteredNames = [peopleFromStart[0][0], peopleFromStart[1][0]];
         }
         newMessage = `*${filteredNames[0]}* leads today's standup. *${filteredNames[1]}* next in the queue.`;
     }
     if (botStarted /*&& userNames[0] !== filteredNames[0] && userNames[1] !== filteredNames[1]*/) {
         // updateSkypeBot(newMessage);
-        startSkypeBot(newMessage, function() {getData(getNextInQueue);});
+        updateSkypeBot(newMessage);
     } else if (!botStarted /*&& userNames[0] !== filteredNames[0] && userNames[1] !== filteredNames[1]*/){
         startSkypeBot(newMessage, function() {getData(getNextInQueue);});
         botStarted = true;
@@ -55,21 +57,22 @@ function getNextInQueue(rows) {
     return filteredNames;
 }
 
+// trigger once to check how it works
+
+getData(getNextInQueue);
 skipUsers(skipOneUser);
 
-let rule = new schedule.RecurrenceRule();
-rule.dayOfWeek = [new schedule.Range(1, 5)];
-rule.hour = 10;
-rule.minute = 25;
+// 8am hour server time is 10am in Ukraine
 
-// trigger once to check how it works
-getData(getNextInQueue);
-
-// CRON time from https://crontab.guru/#25_8_*_*_1-5
-// 8am hour server time is 10am GMT+2
-
-let j = schedule.scheduleJob("25 8 * * 1-5", () => {
+ontime({
+    cycle: [
+        "8:25:00"
+    ],
+    utc: true,
+    single: true
+}, (ot) => {
+    console.log("triggered");
     getData(getNextInQueue);
+    ot.done();
+    return;
 });
-
-j;

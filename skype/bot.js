@@ -48,6 +48,7 @@ let bot = new builder.UniversalBot(connector);
 bot.set("storage", tableStorage);
 
 let savedAddress = undefined;
+var botAddresses = [];
 
 server.listen(process.env.port || process.env.PORT || 3978, function () {
     console.log("%s listening to %s", server.name, server.url);
@@ -98,6 +99,10 @@ function startSkypeBot(messageWithUserNames, callback) {
     bot.dialog("/", mainDialog, true);
 
     bot.on("conversationUpdate", function (message) {
+        if (botAddresses.length === 0 || !botAddresses.some( addr => addr.conversation.id === message.address.conversation.id)) {
+            botAddresses.push(message.address);
+            console.log(botAddresses);
+        }
         bot.beginDialog(message.address, "/");
     });
 
@@ -154,7 +159,7 @@ function startSkypeBot(messageWithUserNames, callback) {
 }
 
 function updateSkypeBot(newMessage) {
-    startProactiveDialog(savedAddress, newMessage);
+    botAddresses.forEach( address => startProactiveDialog(address, newMessage));
 }
 
 function startProactiveDialog(address, message) {
@@ -265,9 +270,25 @@ function getHelpMessage(session) {
         .text(availableCommands);
     session.send(reply);
 }
-module.exports.startSkypeBot = startSkypeBot;
-module.exports.updateSkypeBot = updateSkypeBot;
-module.exports.skipUsers = skipUsers;
+
+function notifyAboutMeetingEnd() {
+    var newMessage = "Hey, presenter! Don't forget to run '/complete' command.  \n";
+    newMessage += "I suppose you don't want to present tomorrow again, do you?";
+    botAddresses.forEach( address => startProactiveDialog(address, newMessage));
+}
+
+ontime({
+    cycle: [
+        "8:55:00"
+    ],
+    utc: true,
+    single: true
+}, (ot) => {
+    console.log("triggered");
+    notifyAboutMeetingEnd();
+    ot.done();
+    return;
+});
 
 module.exports.startSkypeBot = startSkypeBot;
 module.exports.updateSkypeBot = updateSkypeBot;
