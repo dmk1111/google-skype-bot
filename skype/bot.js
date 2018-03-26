@@ -219,7 +219,8 @@ function askForPresenterFn(session) {
 function presenterSelectedFn(session, args, next) {
     // Get username from users utterance
     var utterance = args.intent.matched[0];
-    var userNameIndex = userList.indexOf(utterance);
+    var username = utterance.split(" ")[2];
+    var userNameIndex = userList.indexOf(username);
     if (userNameIndex !== -1) {
         updateSpreadSheet(userNameIndex);
     } else {
