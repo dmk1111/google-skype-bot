@@ -3,7 +3,8 @@ const restify = require("restify");
 const builder = require("botbuilder");
 const botbuilder_azure = require("botbuilder-azure");
 let updateSpreadSheet = require("../spreadsheets/googleDataManage").updateSpreadSheet;
-let getRandomCat = require("../thecatapi/cats").getRandomCat;
+let getRandomCat = require("../animals/cats").getRandomCat;
+var getRandomDog = require("../animals/dogs").getRandomDog;
 let getPulls = require("../vsts/visualStudioServices").getPRs;
 
 const userList = [
@@ -253,16 +254,31 @@ function getPullRequestsFn(session, args, next) {
 function getRandomCatFn(session, args, next) {
     session.send("Searching for a funny cat (poolparty)");
     session.sendTyping();
-    getRandomCat((type, catLink) => {
-        let msg = new builder.Message(session)
-            .address(session.message.address)
-            .text(catLink);
+    let getDog = Math.floor(Math.random() * 10) >= 7; // get dog in 30% of time
+    if (getDog) {
+        getRandomDog( dogLink => {
+            let msg = new builder.Message(session)
+                .address(session.message.address)
+                .text(dogLink);
 
-        session.send(msg);
-        setTimeout( () => {
-            session.endDialog();
-        }, 100)
-    });
+            session.send(msg);
+            session.send("Oops... I guess this is not a cat. Wanna try again?");
+            setTimeout(() => {
+                session.endDialog();
+            }, 100);
+        });
+    } else {
+        getRandomCat((type, catLink) => {
+            let msg = new builder.Message(session)
+                .address(session.message.address)
+                .text(catLink);
+
+            session.send(msg);
+            setTimeout(() => {
+                session.endDialog();
+            }, 100);
+        });
+    }
 }
 
 function getHelpMessage(session) {
