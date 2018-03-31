@@ -1,13 +1,13 @@
-var request = require('request');
+const request = require('request');
 
-var user = 'UserName'; // Your VSTS username
-var pass = 'token'; // your VSTS token
+const user = 'UserName'; // Your VSTS username
+const pass = 'token'; // your VSTS token
 
-var auth = new Buffer(user + ':' + pass).toString('base64');
-var space = "myvsts";
-var project = "Proj1";
+let auth = new Buffer(user + ':' + pass).toString('base64');
+let space = "myvsts";
+let project = "Proj1";
 
-var options = {
+let options = {
     url: `https://${space}.visualstudio.com/${project}/_apis/git/pullRequests?api-version=3.0-preview`,
     headers: {
         'Authorization': 'Basic ' + auth
@@ -16,7 +16,7 @@ var options = {
 
 function onGetPR(error, response, body, cb) {
     if (!error && response.statusCode == 200) {
-        var info = [];
+        let info = [];
         JSON.parse(body).value.forEach( pr => {
             if (pr.reviewers.some(r => r.displayName.indexOf("Framework - Front-end") !== -1)) {
                 let prUrl = `https://${space}.visualstudio.com/${project}/_git/${pr.repository.name}/pullrequest/${pr.pullRequestId}`;

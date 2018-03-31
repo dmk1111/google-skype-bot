@@ -16,7 +16,7 @@ function getRandomCat(callback) {
 }
 
 function getExtension(filename) {
-    var i = filename.lastIndexOf('.');
+    let i = filename.lastIndexOf('.');
     return (i < 0) ? '' : filename.substr(i+1);
 }
 

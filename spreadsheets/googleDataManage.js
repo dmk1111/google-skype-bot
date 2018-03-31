@@ -1,11 +1,9 @@
-// TODO: Handle communication with user in chat & update document accordingly
-
-var google = require('googleapis');
-var key = require('./JWT.json');
-var sheets = google.sheets("v4").spreadsheets;
+const google = require('googleapis');
+const key = require('./JWT.json');
+const sheets = google.sheets("v4").spreadsheets;
 
 // links from https://developers.google.com/sheets/api/guides/authorizing
-var jwtClient = new google.auth.JWT(
+let jwtClient = new google.auth.JWT(
     key.client_email,
     null,
     key.private_key,
@@ -13,8 +11,8 @@ var jwtClient = new google.auth.JWT(
     null
 );
 
-var oldRows = [];
-var nextPeople = [];
+let oldRows = [];
+let nextPeople = [];
 
 function getData(callback) {
 
@@ -37,7 +35,7 @@ function getData(callback) {
                 console.log('The API returned an error: ' + err);
                 return;
             }
-            var rows = response.values;
+            let rows = response.values;
             if (rows.length === 0) {
                 callback('No data found.');
             } else {
@@ -50,7 +48,7 @@ function getData(callback) {
 }
 
 function updateSpreadSheet(id) {
-    var newValues = oldRows.map(function (row, index) {
+    let newValues = oldRows.map(function (row, index) {
         if (id === index) {
             row[1] = +row[1] + 1 + '';
         }

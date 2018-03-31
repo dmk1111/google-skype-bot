@@ -1,12 +1,12 @@
 const ontime = require("ontime");
-let restify = require("restify");
-let builder = require("botbuilder");
-let botbuilder_azure = require("botbuilder-azure");
+const restify = require("restify");
+const builder = require("botbuilder");
+const botbuilder_azure = require("botbuilder-azure");
 let updateSpreadSheet = require("../spreadsheets/googleDataManage").updateSpreadSheet;
 let getRandomCat = require("../thecatapi/cats").getRandomCat;
-var getPulls = require("../vsts/visualStudioServices").getPRs;
+let getPulls = require("../vsts/visualStudioServices").getPRs;
 
-let userList = [
+const userList = [
     // last names of users that will be used in RegExp
     "Pond",
     "Smith",
@@ -92,13 +92,13 @@ bot.dialog("getRandomCat", getRandomCatFn, true);
 function startSkypeBot(messageWithUserNames, callback) {
     botAddresses = [];
     updateCallback = callback;
-    var commandRegEx = new RegExp("(\\/)([^ ]*)", "i"); // "/(\/)([^ ]*)/"
+    let commandRegEx = new RegExp("(\\/)([^ ]*)", "i"); // "/(\/)([^ ]*)/"
 
 //=========================================================
 // Bots Dialogs
 //=========================================================
 
-    var usersMessageSent = false;
+    let usersMessageSent = false;
     bot.dialog("/", mainDialog, true);
 
     bot.on("conversationUpdate", function (message) {
@@ -113,7 +113,7 @@ function startSkypeBot(messageWithUserNames, callback) {
         if (!usersMessageSent) {
             savedAddress = session.message.address;
             session.userData.savedAddress = savedAddress;
-            var reply = new builder.Message()
+            let reply = new builder.Message()
                 .address(session.message.address)
                 .text(messageWithUserNames);
             session.send(reply);
@@ -126,8 +126,8 @@ function startSkypeBot(messageWithUserNames, callback) {
                 session.send(JSON.stringify(session.message.address));
                 session.send(JSON.stringify(botAddresses));
             } else if (session.message.text.toLowerCase().indexOf("hello") !== -1) {
-                var name = session.message.user ? session.message.user.name : null;
-                var reply = new builder.Message()
+                let name = session.message.user ? session.message.user.name : null;
+                let reply = new builder.Message()
                     .address(session.message.address)
                     .text("Hello %s ", name || "there");
                 session.send(reply);
@@ -218,9 +218,9 @@ function askForPresenterFn(session) {
 }
 function presenterSelectedFn(session, args, next) {
     // Get username from users utterance
-    var utterance = args.intent.matched[0];
-    var username = utterance.split(" ")[2];
-    var userNameIndex = userList.indexOf(username);
+    let utterance = args.intent.matched[0];
+    let username = utterance.split(" ")[2];
+    let userNameIndex = userList.indexOf(username);
     if (userNameIndex !== -1) {
         updateSpreadSheet(userNameIndex);
     } else {
@@ -254,7 +254,7 @@ function getRandomCatFn(session, args, next) {
     session.send("Searching for a funny cat (poolparty)");
     session.sendTyping();
     getRandomCat((type, catLink) => {
-        var msg = new builder.Message(session)
+        let msg = new builder.Message(session)
             .address(session.message.address)
             .text(catLink);
 
@@ -266,7 +266,7 @@ function getRandomCatFn(session, args, next) {
 }
 
 function getHelpMessage(session) {
-    var availableCommands = "Hi, here is a list of available commands:  \n";
+    let availableCommands = "Hi, here is a list of available commands:  \n";
     availableCommands
         += "'/complete' - complete morning meeting and select presenter to update spreadsheet  \n";
     availableCommands += "'/vac' - mark responsible person (first one in '/status' result) as on vacation  \n";
@@ -274,14 +274,14 @@ function getHelpMessage(session) {
     availableCommands += "'/getpr' - get list of PRs assigned to Framework - Front-end  \n";
     availableCommands += "'/getcat' - get random cat picture ;)  \n";
     availableCommands += "'/status' - get message with people responsible for next meeting";
-    var reply = new builder.Message()
+    let reply = new builder.Message()
         .address(session.message.address)
         .text(availableCommands);
     session.send(reply);
 }
 
 function notifyAboutMeetingEnd() {
-    var newMessage = "Hey, presenter! Don't forget to run '/complete' command.  \n";
+    let newMessage = "Hey, presenter! Don't forget to run '/complete' command.  \n";
     newMessage += "I suppose you don't want to present tomorrow again, do you?";
     botAddresses.forEach( address => startProactiveDialog(address, newMessage));
 }
