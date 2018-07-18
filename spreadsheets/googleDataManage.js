@@ -16,7 +16,7 @@ let nextPeople = [];
 
 function getData(callback) {
 
-    // implemented according to guideline: http://google.github.io/google-api-nodejs-client/22.2.0/index.html#toc15__anchor
+    // implement according to guideline: https://github.com/google/google-auth-library-nodejs/tree/v1.6.1#json-web-tokens
     jwtClient.authorize(function (err, tokens) {
         if (err) {
             console.log(err);
